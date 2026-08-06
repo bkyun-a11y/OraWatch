@@ -9,7 +9,7 @@ export async function GET() {
                    ROUND(TABLESPACE_SIZE * 8192 / 1024 / 1024 / 1024, 2) as TOTAL_GB
             FROM DBA_TABLESPACE_USAGE_METRICS
             ORDER BY USED_PERCENT DESC
-            FETCH FIRST 5 ROWS ONLY
+            FETCH FIRST 10 ROWS ONLY
         `;
 
         const rows = await execute(query);
