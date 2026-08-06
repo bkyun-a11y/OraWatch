@@ -28,13 +28,6 @@ export async function GET() {
 
         return NextResponse.json(rows);
     } catch (err) {
-        // Fallback mock data on error
-        return NextResponse.json([
-            { TABLESPACE_NAME: 'SYSTEM', USED_PCT: 45.2, TOTAL_GB: 10 },
-            { TABLESPACE_NAME: 'SYSAUX', USED_PCT: 88.5, TOTAL_GB: 5 },
-            { TABLESPACE_NAME: 'USERS', USED_PCT: 12.0, TOTAL_GB: 100 },
-            { TABLESPACE_NAME: 'UNDOTBS1', USED_PCT: 5.4, TOTAL_GB: 20 },
-            { TABLESPACE_NAME: 'TEMP', USED_PCT: 0, TOTAL_GB: 50 },
-        ]);
+        return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }

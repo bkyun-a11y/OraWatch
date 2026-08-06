@@ -16,6 +16,7 @@ export default function Dashboard() {
         host: '127.0.0.1', port: '1521', sid: 'XE', user: 'system', password: '', mockMode: true
     });
     const [loading, setLoading] = useState(false);
+    const [dbError, setDbError] = useState(null); // DB 연결 오류 메시지
     const [tick, setTick] = useState(0);
     const [lastUpdated, setLastUpdated] = useState(null);
     const [darkMode, setDarkMode] = useState(true);
@@ -144,33 +145,41 @@ export default function Dashboard() {
 
     // Poll Data
     useEffect(() => {
-        if (!config.host && !config.mockMode) return; // Don't poll if no config
-        const fetch = async () => {
+        if (!config.host && !config.mockMode) return;
+        const fetchData = async () => {
             setLoading(true);
+            setDbError(null);
             try {
                 const [sRes, lRes, tRes, mRes] = await Promise.all([
-                    axios.get('/api/sessions').catch(() => ({ data: [] })),
-                    axios.get('/api/locks').catch(() => ({ data: [] })),
-                    axios.get('/api/tablespaces').catch(() => ({ data: [] })),
-                    axios.get('/api/metrics').catch(() => ({ data: { cpu: 0, memory: 0, io: 0, connections: 0 } }))
+                    axios.get('/api/sessions'),
+                    axios.get('/api/locks'),
+                    axios.get('/api/tablespaces'),
+                    axios.get('/api/metrics')
                 ]);
+
+                // LIVE 모드에서 에러 응답 체크
+                if (sRes.data?.error) throw new Error(sRes.data.error);
+                if (mRes.data?.error) throw new Error(mRes.data.error);
+
                 setData({
-                    sessions: sRes.data || [],
-                    locks: lRes.data || [],
-                    tablespaces: tRes.data || [],
+                    sessions: Array.isArray(sRes.data) ? sRes.data : [],
+                    locks: Array.isArray(lRes.data) ? lRes.data : [],
+                    tablespaces: Array.isArray(tRes.data) ? tRes.data : [],
                     metrics: mRes.data || { cpu: 0, memory: 0, io: 0, connections: 0 }
                 });
                 setLastUpdated(new Date());
             } catch (e) {
-                console.error("Poll Error", e);
+                const errMsg = e.response?.data?.error || e.message;
+                console.error('Poll Error:', errMsg);
+                if (!config.mockMode) setDbError(errMsg);
             } finally {
                 setTimeout(() => setLoading(false), 500);
             }
         };
-        fetch();
-        const interval = setInterval(() => { setTick(t => t + 1); fetch(); }, 5000);
+        fetchData();
+        const interval = setInterval(() => { setTick(t => t + 1); fetchData(); }, 5000);
         return () => clearInterval(interval);
-    }, [config.mockMode, tick]); // Refresh when tick changes
+    }, [config.mockMode, tick]);
 
     // Clear context states when tab changes to prevent "ghosting"
     useEffect(() => {
@@ -193,6 +202,14 @@ export default function Dashboard() {
 
     return (
         <div className="flex flex-col h-screen bg-zinc-50 dark:bg-[#2c2c2c] text-zinc-800 dark:text-zinc-300 font-sans selection:bg-orange-500/20 selection:text-orange-600 dark:selection:text-orange-100 overflow-hidden transition-colors duration-300">
+            {/* DB 연결 오류 배너 */}
+            {dbError && (
+                <div className="flex items-center gap-3 px-4 py-2 bg-red-600 text-white text-xs font-bold z-50 shrink-0">
+                    <span>⚠️ DB 연결 오류:</span>
+                    <span className="font-normal truncate flex-1">{dbError}</span>
+                    <button onClick={() => setDbError(null)} className="ml-auto text-white/70 hover:text-white shrink-0">✕</button>
+                </div>
+            )}
             {/* Context Menu Overlay */}
             {menuPos && (selectedNode || selectedSession) && (
                 <div

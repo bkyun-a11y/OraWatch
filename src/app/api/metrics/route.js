@@ -78,7 +78,6 @@ export async function GET() {
 
     } catch (err) {
         console.error("Metrics API Error:", err);
-        // Fallback for mock/error
-        return NextResponse.json({ cpu: 15, memory: 45, io: 12.5 });
+        return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }

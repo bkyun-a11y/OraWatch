@@ -24,49 +24,59 @@ export function saveConfig(config) {
     fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
 }
 
-let pool;
+let pool = null;
+let poolConfig = null; // pool 생성에 사용된 config 추적
 
 export async function getPool() {
     const config = getConfig();
     if (!config || config.mockMode) return null;
 
-    try {
-        if (!pool) {
-            const connectString = `${config.host}:${config.port}/${config.sid}`;
-            pool = await oracledb.createPool({
-                user: config.user,
-                password: config.password,
-                connectString: connectString,
-                poolMax: 5,
-                poolMin: 1
-            });
-        }
-        return pool;
-    } catch (err) {
-        console.error('Oracle Pool Error:', err);
-        return null;
+    // config가 바뀌었으면 기존 pool 닫고 재생성
+    const configKey = `${config.host}:${config.port}/${config.sid}:${config.user}`;
+    if (pool && poolConfig !== configKey) {
+        try { await pool.close(0); } catch(e) {}
+        pool = null;
     }
+
+    if (!pool) {
+        const connectString = `${config.host}:${config.port}/${config.sid}`;
+        // 에러를 숨기지 않고 그대로 throw → 호출부에서 처리
+        pool = await oracledb.createPool({
+            user: config.user,
+            password: config.password,
+            connectString: connectString,
+            poolMax: 5,
+            poolMin: 1,
+            connectTimeout: 10
+        });
+        poolConfig = configKey;
+    }
+    return pool;
 }
 
 export async function execute(sql, binds = [], opts = {}) {
     const config = getConfig();
+
+    // mockMode일 때만 mock 데이터 반환
     if (!config || config.mockMode === true) {
         return mockData(sql);
     }
 
-    const pool = await getPool();
-    if (!pool) return mockData(sql);
+    // LIVE 모드: 에러를 throw하여 API 라우트에서 처리하게 함 (mock 폴백 없음)
+    const dbPool = await getPool();
+    if (!dbPool) {
+        throw new Error('Oracle connection pool 생성 실패. Oracle Instant Client 설치 여부 및 DB 접속 정보를 확인하세요.');
+    }
 
     let conn;
     try {
-        conn = await pool.getConnection();
+        conn = await dbPool.getConnection();
         const result = await conn.execute(sql, binds, { ...opts, outFormat: oracledb.OUT_FORMAT_OBJECT });
         return result.rows;
-    } catch (err) {
-        console.error('Execute Error:', err);
-        return mockData(sql);
     } finally {
-        if (conn) await conn.close();
+        if (conn) {
+            try { await conn.close(); } catch(e) {}
+        }
     }
 }
 
