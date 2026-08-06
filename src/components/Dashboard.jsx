@@ -512,8 +512,10 @@ export default function Dashboard() {
                                         </button>
                                         <button
                                             onClick={() => {
-                                                axios.post('/api/config', config)
-                                                    .then(() => alert('Configuration Saved & Connected! 🚀'))
+                                                const liveConfig = { ...config, mockMode: false };
+                                                setConfig(liveConfig);
+                                                axios.post('/api/config', liveConfig)
+                                                    .then(() => alert('Configuration Saved & Connected! 🚀\nLIVE 모드로 전환되었습니다.'))
                                                     .catch(err => alert('Save Failed: ' + err.message));
                                             }}
                                             className="flex-1 py-3 text-sm font-bold bg-orange-600 text-white rounded-lg hover:bg-orange-500 transition-colors shadow-lg shadow-orange-500/20"
