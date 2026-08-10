@@ -55,23 +55,23 @@ EOF
 npm run build
 
 # PM2를 이용하여 백그라운드 환경으로 무중단 서버 기동
-pm2 start npm --name "orawatch" -- run start
+pm2 start npm --name "OraWatch" -- run start
 
 # 이미 PM2에 등록되어 있다면 재시작만 수행
-pm2 restart orawatch
+pm2 restart OraWatch
 ```
 
 ### 5. 서버 중지 (Stop)
 ```bash
 # 서버 일시 중지
-pm2 stop orawatch
+pm2 stop OraWatch
 
 # PM2 관리 목록에서 서버 제거
-pm2 delete orawatch
+pm2 delete OraWatch
 ```
 
 ## 🔄 지속적 배포 (업데이트 방법)
 로컬에서 기능 수정 후 GitHub에 코드를 Push 했다면, EC2 인스턴스에서 아래 한 줄 명령어를 통해 쉽게 업데이트할 수 있습니다.
 ```bash
-cd ~/OraWatch && git pull origin main && npm run build && pm2 restart orawatch
+cd ~/OraWatch && git pull origin main && npm run build && pm2 restart OraWatch
 ```
