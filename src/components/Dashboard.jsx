@@ -8,6 +8,7 @@ import {
     Terminal, BarChart2, Cpu, HardDrive, Sun, Moon,
     FileText, X
 } from 'lucide-react';
+import AgentChat from './AgentChat';
 
 export default function Dashboard() {
     const [activeTab, setActiveTab] = useState('sessions'); // sessions, locks, settings
@@ -547,6 +548,8 @@ export default function Dashboard() {
                     </div>
                 </div>
             </main>
+
+            <AgentChat />
         </div>
     );
 }
