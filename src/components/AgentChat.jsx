@@ -143,7 +143,7 @@ export default function AgentChat() {
 
             {/* Chat drawer */}
             {open && (
-                <div className="fixed bottom-24 right-6 z-40 w-[380px] h-[560px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+                <div className="fixed bottom-24 right-6 z-40 w-[500px] h-[560px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
                     <div className="h-14 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between px-4 bg-zinc-50 dark:bg-zinc-950 shrink-0">
                         <div className="flex items-center gap-2">
                             <div className="p-1.5 bg-orange-600 rounded-lg">

@@ -20,6 +20,8 @@ export async function POST(request) {
 
     const gatewayUrl = process.env.AGENT_GATEWAY_URL;
     const apiKey = process.env.AIR_STUDIO_API_KEY;
+    // API Key 발급 대상 계정과 일치해야 하는 값 (게이트웨이가 키-사용자 매칭을 검사할 수 있음)
+    const userId = process.env.AGENT_USER_ID;
 
     if (!gatewayUrl || !apiKey) {
         return NextResponse.json(
@@ -33,7 +35,7 @@ export async function POST(request) {
         upstream = await fetch(gatewayUrl, {
             method: 'POST',
             headers: {
-                'X-User-Id': 'orawatch-user',
+                'X-User-Id': userId || 'orawatch-user',
                 'Authorization': apiKey,
                 'Accept': 'text/event-stream',
                 'Content-Type': 'application/json',
