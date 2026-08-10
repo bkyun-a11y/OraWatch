@@ -620,8 +620,8 @@ const LockNode = ({ node, level = 0, onContextMenu, selectedSid }) => {
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <span className="font-black text-sm text-zinc-900 dark:text-white">SID {node.sid}</span>
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-black/50 text-zinc-500 font-mono">#{node.serial}</span>
+                                <span className="font-black text-lg text-zinc-900 dark:text-white bg-zinc-300 dark:bg-zinc-600 rounded px-1.5 py-0.5">SID {node.sid}</span>
+                                <span className="font-black text-lg text-zinc-900 dark:text-white bg-zinc-300 dark:bg-zinc-600 rounded px-1.5 py-0.5 ml-3">SERIAL {node.serial}</span>
                                 {level === 0 && (
                                     <span className="text-[10px] font-bold text-red-600 dark:text-red-500 bg-red-100 dark:bg-red-500/10 px-1.5 rounded-full uppercase tracking-tighter">
                                         Root Holder
