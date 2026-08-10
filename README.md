@@ -9,6 +9,7 @@ OraWatch는 Oracle 데이터베이스의 상태를 실시간으로 모니터링�
 - **데이터베이스 락 감지 (Lock Detection)**: `DBA_WAITERS` 뷰를 기반으로 락 대기 세션(Waiting)과 차단 세션(Blocking)을 정확하게 추적하고 시각화합니다.
 - **테이블스페이스 모니터링 (Tablespace Usage)**: 상위 사용량 테이블스페이스 10개의 정보를 제공하여 용량 부족 문제를 사전에 인지할 수 있습니다.
 - **시뮬레이션(Mock) 모드 지원**: 실제 DB가 연결되지 않은 환경에서도 UI를 테스트할 수 있는 Mock 모드를 지원합니다.
+- **AI Agent 자연어 DB 운영**: 화면 우하단 채팅창에서 자연어로 DB 상태를 질문하거나 조회/작업(세션 Kill 등)을 요청할 수 있습니다.
 
 ## 🛠️ 사용된 기술 (Tech Stack)
 
@@ -37,11 +38,11 @@ npm install
 ```bash
 cat > db-config.json << 'EOF'
 {
-  "host": "bkyun-oracle.cps0m2g6yejh.us-west-1.rds.amazonaws.com",
-  "port": "1521",
-  "sid": "ORCL",
-  "user": "admin",
-  "password": "your_password",
+  "host": "host_url",
+  "port": "port",
+  "sid": "sid",
+  "user": "user",
+  "password": "password",
   "mockMode": false
 }
 EOF
