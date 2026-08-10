@@ -3,6 +3,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, X, Send, Loader2, RotateCcw, Bot, Wrench } from 'lucide-react';
 
+// crypto.randomUUID()는 HTTPS(또는 localhost) 등 보안 컨텍스트에서만 지원되므로,
+// 평문 HTTP로 서비스되는 환경(예: SSL 미적용 EC2)에서도 죽지 않도록 폴백을 둔다.
+function generateId() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+    });
+}
+
 // 자연어 DB 운영 Agent 채팅 드로어
 // - 화면 우하단 플로팅 버튼으로 어느 탭에서든 열 수 있음
 // - /api/agent/chat 을 통해 SSE 스트리밍 응답을 받아 토큰 단위로 렌더링
@@ -18,7 +31,7 @@ export default function AgentChat() {
     const scrollRef = useRef(null);
 
     useEffect(() => {
-        if (!sessionId) setSessionId(crypto.randomUUID());
+        if (!sessionId) setSessionId(generateId());
     }, [sessionId]);
 
     useEffect(() => {
@@ -26,7 +39,7 @@ export default function AgentChat() {
     }, [messages, sending]);
 
     const resetChat = () => {
-        setSessionId(crypto.randomUUID());
+        setSessionId(generateId());
         setMessages([]);
     };
 
