@@ -32,7 +32,7 @@ export async function POST(request) {
 
     // 업스트림(Agent Gateway/flow)이 응답을 아예 안 주고 무한 대기하는 경우를 막기 위한 타임아웃.
     // 헤더 수신 전 hang과, 스트리밍 중간에 멈추는 경우 둘 다 이 abort로 정리된다.
-    const TIMEOUT_MS = 90_000;
+    const TIMEOUT_MS = 180_000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 

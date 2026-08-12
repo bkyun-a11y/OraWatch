@@ -101,10 +101,10 @@ export default function AgentChat() {
         setMessages(prev => [...prev, { role: 'user', text: query }, { role: 'assistant', text: '' }]);
         setSending(true);
 
-        // 서버(/api/agent/chat)에도 90초 타임아웃이 있지만, 그쪽이 응답 자체를 못 주는
-        // 극단적인 경우까지 대비한 클라이언트 쪽 이중 안전장치 (100초 후 강제 abort).
+        // 서버(/api/agent/chat)에도 180초 타임아웃이 있지만, 그쪽이 응답 자체를 못 주는
+        // 극단적인 경우까지 대비한 클라이언트 쪽 이중 안전장치 (190초 후 강제 abort).
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 100_000);
+        const timeoutId = setTimeout(() => controller.abort(), 190_000);
 
         try {
             const res = await fetch('/api/agent/chat', {
