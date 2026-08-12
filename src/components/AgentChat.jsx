@@ -5,7 +5,10 @@ import { MessageSquare, X, Send, Loader2, RotateCcw, Bot, Wrench, Check, Ban } f
 
 // Agent Gateway가 HITL(사람 승인) 단계에서 보내는 마커.
 // 실제로는 같은 세션에 자연어로 "승인"/"거부"를 보내면 대기 중인 작업(flow)이 재개된다.
-const AIRAPP_TAG_RE = /\[AIRAPP:(AIRAPPROVAL|AIRREJECT)\]\(AIRQUERY:[^)]+\)/g;
+const AIRAPP_TAG_PATTERN = '\\[AIRAPP:(AIRAPPROVAL|AIRREJECT)\\]\\(AIRQUERY:[^)]+\\)';
+// g 플래그 정규식을 .test()로 여러 메시지에 반복 호출하면 lastIndex가 누적되어 간헐적으로
+// 매치를 놓치는 문제가 있으므로, 감지용(g 없음)과 제거용(g 있음)을 분리해서 매번 새로 만든다.
+const AIRAPP_HAS_RE = new RegExp(AIRAPP_TAG_PATTERN);
 
 // crypto.randomUUID()는 HTTPS(또는 localhost) 등 보안 컨텍스트에서만 지원되므로,
 // 평문 HTTP로 서비스되는 환경(예: SSL 미적용 EC2)에서도 죽지 않도록 폴백을 둔다.
@@ -242,8 +245,8 @@ const ChatBubble = ({ role, text, decided, onDecision }) => {
     const isUser = role === 'user';
 
     const rawText = text || '';
-    const needsApproval = !isUser && AIRAPP_TAG_RE.test(rawText);
-    const cleanText = needsApproval ? rawText.replace(AIRAPP_TAG_RE, '').trim() : rawText;
+    const needsApproval = !isUser && AIRAPP_HAS_RE.test(rawText);
+    const cleanText = needsApproval ? rawText.replace(new RegExp(AIRAPP_TAG_PATTERN, 'g'), '').trim() : rawText;
 
     return (
         <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} gap-2`}>
