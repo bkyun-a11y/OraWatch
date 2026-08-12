@@ -34,17 +34,25 @@ export default function AgentChat() {
     const [input, setInput] = useState('');
     const [sending, setSending] = useState(false);
     const scrollRef = useRef(null);
+    // sessionId를 state로만 들고 있으면 스트리밍 중(같은 tick 안에서) 최신값을 못 읽는 stale-closure
+    // 문제가 생길 수 있어서, 실제 요청에는 항상 ref를 참조한다. state는 화면 표시/리렌더 트리거용.
+    const sessionIdRef = useRef(null);
+
+    const setSession = (id) => {
+        sessionIdRef.current = id;
+        setSessionId(id);
+    };
 
     useEffect(() => {
-        if (!sessionId) setSessionId(generateId());
-    }, [sessionId]);
+        if (!sessionIdRef.current) setSession(generateId());
+    }, []);
 
     useEffect(() => {
         scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
     }, [messages, sending]);
 
     const resetChat = () => {
-        setSessionId(generateId());
+        setSession(generateId());
         setMessages([]);
     };
 
@@ -55,6 +63,11 @@ export default function AgentChat() {
 
         try {
             const json = JSON.parse(payload);
+            // 게이트웨이가 우리가 보낸 것과 다른 session_id를 내려주면(세션을 자체적으로 새로 발급하는
+            // 경우), 이후 요청부터는 그 값을 따라가야 HITL 재개 등 대화 컨텍스트가 끊기지 않는다.
+            if (json.session_id && json.session_id !== sessionIdRef.current) {
+                setSession(json.session_id);
+            }
             text = json.delta ?? json.chunk ?? json.content ?? json.text ?? json.answer ?? json.token ?? null;
             if (text === null && json.type) {
                 note = `⚙️ ${json.type}${json.tool ? ` · ${json.tool}` : ''}`;
@@ -89,7 +102,7 @@ export default function AgentChat() {
             const res = await fetch('/api/agent/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query, session_id: sessionId }),
+                body: JSON.stringify({ query, session_id: sessionIdRef.current }),
             });
 
             if (!res.ok || !res.body) {
@@ -167,10 +180,13 @@ export default function AgentChat() {
                             </div>
                             <div>
                                 <h3 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-tight">DB Ops Agent</h3>
-                                <p className="text-[10px] text-zinc-500">자연어로 DB 조회/작업 요청</p>
+                                <p className="text-[10px] text-zinc-500">
+                                    자연어로 DB 조회/작업 요청
+                                    {sessionId && <span className="ml-1.5 font-mono opacity-60">· {sessionId.slice(0, 8)}</span>}
+                                </p>
                             </div>
                         </div>
-                        <button onClick={resetChat} title="New Chat" className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-lg transition-colors">
+                        <button onClick={resetChat} title={`New Chat (session: ${sessionId || ''})`} className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-lg transition-colors">
                             <RotateCcw className="w-3.5 h-3.5 text-zinc-500" />
                         </button>
                     </div>
