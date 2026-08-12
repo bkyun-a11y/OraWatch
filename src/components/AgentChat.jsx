@@ -101,11 +101,17 @@ export default function AgentChat() {
         setMessages(prev => [...prev, { role: 'user', text: query }, { role: 'assistant', text: '' }]);
         setSending(true);
 
+        // 서버(/api/agent/chat)에도 90초 타임아웃이 있지만, 그쪽이 응답 자체를 못 주는
+        // 극단적인 경우까지 대비한 클라이언트 쪽 이중 안전장치 (100초 후 강제 abort).
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 100_000);
+
         try {
             const res = await fetch('/api/agent/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query, session_id: sessionIdRef.current }),
+                signal: controller.signal,
             });
 
             if (!res.ok || !res.body) {
@@ -137,8 +143,10 @@ export default function AgentChat() {
                 }
             }
         } catch (e) {
-            setMessages(prev => [...prev, { role: 'system', text: `⚠️ ${e.message}` }]);
+            const msg = e.name === 'AbortError' ? '응답이 너무 오래 걸려 요청을 중단했습니다. (타임아웃)' : e.message;
+            setMessages(prev => [...prev, { role: 'system', text: `⚠️ ${msg}` }]);
         } finally {
+            clearTimeout(timeoutId);
             setSending(false);
         }
     };

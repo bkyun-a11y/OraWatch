@@ -30,6 +30,12 @@ export async function POST(request) {
         );
     }
 
+    // 업스트림(Agent Gateway/flow)이 응답을 아예 안 주고 무한 대기하는 경우를 막기 위한 타임아웃.
+    // 헤더 수신 전 hang과, 스트리밍 중간에 멈추는 경우 둘 다 이 abort로 정리된다.
+    const TIMEOUT_MS = 90_000;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
     let upstream;
     try {
         upstream = await fetch(gatewayUrl, {
@@ -41,12 +47,21 @@ export async function POST(request) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ session_id, query }),
+            signal: controller.signal,
         });
     } catch (err) {
+        clearTimeout(timeoutId);
+        if (err.name === 'AbortError') {
+            return NextResponse.json(
+                { error: `Agent Gateway 응답이 ${TIMEOUT_MS / 1000}초 내에 오지 않았습니다. (타임아웃)` },
+                { status: 504 }
+            );
+        }
         return NextResponse.json({ error: `Agent Gateway 연결 실패: ${err.message}` }, { status: 502 });
     }
 
     if (!upstream.ok || !upstream.body) {
+        clearTimeout(timeoutId);
         const text = await upstream.text().catch(() => '');
         return NextResponse.json(
             { error: `Agent Gateway 오류 (${upstream.status}): ${text || upstream.statusText}` },
