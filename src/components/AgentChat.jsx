@@ -4,11 +4,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, X, Send, Loader2, RotateCcw, Bot, Wrench, Check, Ban } from 'lucide-react';
 
 // Agent Gateway가 HITL(사람 승인) 단계에서 보내는 마커.
-// 실제로는 같은 세션에 자연어로 "승인"/"거부"를 보내면 대기 중인 작업(flow)이 재개된다.
+// AIR Studio 지원팀 확인 결과: "승인"/"거부" 같은 자연어로는 재개되지 않고,
+// 마커에 박혀있는 AIRQUERY 코드(난수)를 그대로 query로 돌려보내야 승인 처리된다.
 const AIRAPP_TAG_PATTERN = '\\[AIRAPP:(AIRAPPROVAL|AIRREJECT)\\]\\(AIRQUERY:[^)]+\\)';
-// g 플래그 정규식을 .test()로 여러 메시지에 반복 호출하면 lastIndex가 누적되어 간헐적으로
-// 매치를 놓치는 문제가 있으므로, 감지용(g 없음)과 제거용(g 있음)을 분리해서 매번 새로 만든다.
-const AIRAPP_HAS_RE = new RegExp(AIRAPP_TAG_PATTERN);
+const AIRAPPROVAL_RE = /\[AIRAPP:AIRAPPROVAL\]\(AIRQUERY:([^)]+)\)/;
+const AIRREJECT_RE = /\[AIRAPP:AIRREJECT\]\(AIRQUERY:([^)]+)\)/;
 
 // crypto.randomUUID()는 HTTPS(또는 localhost) 등 보안 컨텍스트에서만 지원되므로,
 // 평문 HTTP로 서비스되는 환경(예: SSL 미적용 EC2)에서도 죽지 않도록 폴백을 둔다.
@@ -95,10 +95,12 @@ export default function AgentChat() {
         });
     };
 
-    const sendMessage = async (query) => {
+    // displayText: 채팅창에 보여줄 텍스트 (없으면 query 그대로 표시).
+    // HITL 승인/거부는 실제로 보내는 query(AIRQUERY 코드)와 사람이 읽을 텍스트("승인")가 다르다.
+    const sendMessage = async (query, displayText) => {
         if (!query || sending) return;
 
-        setMessages(prev => [...prev, { role: 'user', text: query }, { role: 'assistant', text: '' }]);
+        setMessages(prev => [...prev, { role: 'user', text: displayText ?? query }, { role: 'assistant', text: '' }]);
         setSending(true);
 
         // 서버(/api/agent/chat)에도 180초 타임아웃이 있지만, 그쪽이 응답 자체를 못 주는
@@ -165,10 +167,15 @@ export default function AgentChat() {
         }
     };
 
-    // HITL 승인/거부 버튼 클릭 -> 같은 세션에 "승인"/"거부"를 자연어로 전송해 대기 중인 flow를 재개
-    const handleDecision = (msgIndex, decision) => {
+    // HITL 승인/거부 버튼 클릭 -> 마커에 들어있던 AIRQUERY 코드를 그대로 query로 전송해 flow를 재개.
+    // ("승인"/"거부" 같은 자연어는 재개 신호로 인식되지 않는다 — AIR Studio 지원팀 확인)
+    const handleDecision = (msgIndex, decision, queryId) => {
         setMessages(prev => prev.map((m, i) => (i === msgIndex ? { ...m, decided: true } : m)));
-        sendMessage(decision === 'approve' ? '승인' : '거부');
+        if (!queryId) {
+            setMessages(prev => [...prev, { role: 'system', text: '⚠️ 승인 코드(AIRQUERY)를 찾지 못해 전송할 수 없습니다.' }]);
+            return;
+        }
+        sendMessage(queryId, decision === 'approve' ? '승인' : '거부');
     };
 
     return (
@@ -210,7 +217,7 @@ export default function AgentChat() {
                             </div>
                         )}
                         {messages.map((m, i) => (
-                            <ChatBubble key={i} role={m.role} text={m.text} decided={m.decided} onDecision={(decision) => handleDecision(i, decision)} />
+                            <ChatBubble key={i} role={m.role} text={m.text} decided={m.decided} onDecision={(decision, queryId) => handleDecision(i, decision, queryId)} />
                         ))}
                         {sending && (
                             <div className="flex items-center gap-2 text-xs text-zinc-400">
@@ -253,7 +260,9 @@ const ChatBubble = ({ role, text, decided, onDecision }) => {
     const isUser = role === 'user';
 
     const rawText = text || '';
-    const needsApproval = !isUser && AIRAPP_HAS_RE.test(rawText);
+    const approveMatch = !isUser ? rawText.match(AIRAPPROVAL_RE) : null;
+    const rejectMatch = !isUser ? rawText.match(AIRREJECT_RE) : null;
+    const needsApproval = Boolean(approveMatch || rejectMatch);
     const cleanText = needsApproval ? rawText.replace(new RegExp(AIRAPP_TAG_PATTERN, 'g'), '').trim() : rawText;
 
     return (
@@ -273,13 +282,13 @@ const ChatBubble = ({ role, text, decided, onDecision }) => {
                     ) : (
                         <>
                             <button
-                                onClick={() => onDecision('approve')}
+                                onClick={() => onDecision('approve', approveMatch?.[1])}
                                 className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-emerald-600 text-white hover:bg-emerald-500 transition-colors"
                             >
                                 <Check className="w-3 h-3" /> 승인
                             </button>
                             <button
-                                onClick={() => onDecision('reject')}
+                                onClick={() => onDecision('reject', rejectMatch?.[1])}
                                 className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors"
                             >
                                 <Ban className="w-3 h-3" /> 거부
