@@ -9,17 +9,19 @@ OraWatch의 핵심 기능입니다. 화면 우하단 채팅 버튼을 누르면 
 - "지금 제일 오래 걸리는 세션 알려줘" → 조회
 - "SYSTEM 테이블스페이스 사용량 얼마나 돼?" → 조회
 - "101번 세션 죽여줘" → 실행(Kill)
+- "이 쿼리 실행계획 좀 봐줘" → 실행계획(Explain Plan) 조회
 - "RDS 클래스를 db.t3.medium으로 변경해줘" → 실행 전 **승인/거부 확인**
 
-내부적으로 Agent Gateway가 요청을 분석해 **조회 전용 MCP 서버**와 **작업(쓰기) 전용 MCP 서버**로 나누어 라우팅하고, 응답은 실시간 스트리밍으로 대화창에 표시됩니다. SQL을 몰라도 대시보드를 뒤지지 않고 채팅 한 줄로 운영이 가능한 것이 OraWatch만의 차별점입니다.
+내부적으로 Agent Gateway가 요청을 분석해 **조회**와 **실제 작업(쓰기)**을 구분해서 처리하고, 응답은 실시간 스트리밍으로 대화창에 표시됩니다. SQL을 몰라도 대시보드를 뒤지지 않고 채팅 한 줄로 운영이 가능한 것이 OraWatch만의 차별점입니다.
 
 **HITL(Human-in-the-loop) 승인**: RDS 인스턴스 클래스 변경처럼 되돌리기 어렵거나 다운타임이 발생하는 작업은 Agent가 곧바로 실행하지 않고, 채팅창에 "승인"/"거부" 버튼을 띄워 사람이 직접 결정하게 합니다. 승인해야만 실제 작업(Tool 호출)이 진행됩니다.
 
 ## 🌟 주요 기능 (Main Features)
 
-- **AI Agent 자연어 DB 운영**: 위 채팅 기능 — 조회부터 세션 Kill, RDS 클래스 변경 등 실제 작업까지 자연어로 처리하며, 위험한 작업은 승인 절차를 거칩니다.
+- **AI Agent 자연어 DB 운영**: 위 채팅 기능 — 조회, 실행계획(Explain Plan) 확인, 세션 Kill, RDS 클래스 변경 등 실제 작업까지 자연어로 처리하며, 위험한 작업은 승인 절차를 거칩니다.
 - **실시간 성능 지표 (Metrics)**: CPU 로드, 메모리 사용량, I/O 상태, 현재 연결된 세션 수를 실시간으로 제공합니다.
 - **활성 세션 모니터링 및 제어 (Session Management)**: 현재 활성화된 세션 목록을 조회하고, 문제가 되는 세션을 즉시 종료(Kill)할 수 있습니다.
+- **SQL Monitoring Report**: Active Session List에서 세션을 우클릭하면 `DBMS_SQLTUNE.REPORT_SQL_MONITOR` 함수로 해당 SQL의 실행 리포트를 HTML 형식으로 생성해 모달 창에서 바로 확인할 수 있습니다.
 - **데이터베이스 락 감지 (Lock Detection)**: `DBA_WAITERS` 뷰를 기반으로 락 대기 세션(Waiting)과 차단 세션(Blocking)을 정확하게 추적하고 시각화합니다.
 - **테이블스페이스 모니터링 (Tablespace Usage)**: 상위 사용량 테이블스페이스 10개의 정보를 제공하여 용량 부족 문제를 사전에 인지할 수 있습니다.
 - **연결 자가 복구**: RDS 재부팅(클래스 변경 등) 이후 DB가 다시 살아나면, Oracle 커넥션 풀을 자동으로 재생성하여 서버 재시작 없이 정상 상태로 복구합니다.
@@ -30,7 +32,7 @@ OraWatch의 핵심 기능입니다. 화면 우하단 채팅 버튼을 누르면 
 - **Frontend**: Next.js (App Router), React, Tailwind CSS (뮤트톤 모던 UI 반응형 디자인), Lucide React (아이콘)
 - **Backend**: Next.js API Routes (Node.js 기반 REST API)
 - **Database**: Oracle DB (`oracledb` Node.js 드라이버 사용)
-- **AI Agent**: 자연어 DB 운영 Agent Gateway 연동 (SSE 스트리밍, 조회/작업 MCP 서버 분리 라우팅)
+- **AI Agent**: 자연어 DB 운영 Agent Gateway 연동 (SSE 스트리밍, 조회/작업 구분 처리)
 - **Process Manager**: PM2 (EC2 운영 서버 무중단 서비스 환경)
 
 ## 🚀 EC2 설치 및 운영 가이드
@@ -102,3 +104,9 @@ pm2 delete OraWatch
 ```bash
 cd ~/OraWatch && git pull origin main && npm run build && pm2 restart OraWatch
 ```
+
+## 📄 라이선스 및 출처
+
+AI Agent가 사용하는 MCP(Model Context Protocol) 서버는 [Oracle 공식 MCP 저장소](https://github.com/oracle/mcp)를 기반으로 합니다.
+
+> Copyright (c) 2025 Oracle and/or its affiliates. Released under the Universal Permissive License v1.0 as shown at https://oss.oracle.com/licenses/upl/.
