@@ -20,8 +20,8 @@ OraWatch의 핵심 기능입니다. 화면 우하단 채팅 버튼을 누르면 
 
 - **AI Agent 자연어 DB 운영**: 위 채팅 기능 — 조회, 실행계획(Explain Plan) 확인, 세션 Kill, RDS 클래스 변경 등 실제 작업까지 자연어로 처리하며, 위험한 작업은 승인 절차를 거칩니다.
 - **실시간 성능 지표 (Metrics)**: CPU 로드, 메모리 사용량, I/O 상태, 현재 연결된 세션 수를 실시간으로 제공합니다.
-- **활성 세션 모니터링 및 제어 (Session Management)**: 현재 활성화된 세션 목록을 조회하고, 문제가 되는 세션을 즉시 종료(Kill)할 수 있습니다.
-- **SQL Monitoring Report**: Active Session List에서 세션을 우클릭하면 `DBMS_SQLTUNE.REPORT_SQL_MONITOR` 함수로 해당 SQL의 실행 리포트를 HTML 형식으로 생성해 모달 창에서 바로 확인할 수 있습니다.
+- **활성 세션 모니터링 및 제어 (Session Management)**: 현재 활성화된 세션 목록을 조회하고, 우클릭으로 문제가 되는 세션을 즉시 종료(Kill)할 수 있습니다.
+- **SQL Monitoring Report**: 세션을 우클릭해 실행 중인 SQL의 상세 실행 리포트를 확인할 수 있습니다.
 - **데이터베이스 락 감지 (Lock Detection)**: `DBA_WAITERS` 뷰를 기반으로 락 대기 세션(Waiting)과 차단 세션(Blocking)을 정확하게 추적하고 시각화합니다.
 - **테이블스페이스 모니터링 (Tablespace Usage)**: 상위 사용량 테이블스페이스 10개의 정보를 제공하여 용량 부족 문제를 사전에 인지할 수 있습니다.
 - **연결 자가 복구**: RDS 재부팅(클래스 변경 등) 이후 DB가 다시 살아나면, Oracle 커넥션 풀을 자동으로 재생성하여 서버 재시작 없이 정상 상태로 복구합니다.
