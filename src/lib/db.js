@@ -27,6 +27,26 @@ export function saveConfig(config) {
 let pool = null;
 let poolConfig = null; // pool 생성에 사용된 config 추적
 
+// RDS 재부팅/네트워크 단절처럼 "연결 자체"가 문제인 에러 코드들.
+// 이런 에러를 만나면 pool을 통째로 버려야 한다 — 안 그러면 DB가 다시 살아난 뒤에도
+// 죽은 pool을 계속 붙잡고 재사용하려다 서버 전체가 응답 불가 상태에 빠질 수 있다.
+const CONNECTION_ERROR_RE = /NJS-(500|503|510|511|512|040|041)|ORA-(03113|03114|03135|12537|12541|01033|01034|01089|01092)/;
+
+function isConnectionError(err) {
+    const text = `${err?.code || ''} ${err?.message || ''}`;
+    return CONNECTION_ERROR_RE.test(text);
+}
+
+// pool을 강제로 버림 (다음 getPool() 호출에서 새로 생성하도록)
+function invalidatePool() {
+    const stale = pool;
+    pool = null;
+    poolConfig = null;
+    if (stale) {
+        stale.close(0).catch(() => {});
+    }
+}
+
 export async function getPool() {
     const config = getConfig();
     if (!config || config.mockMode) return null;
@@ -73,6 +93,14 @@ export async function execute(sql, binds = [], opts = {}) {
         conn = await dbPool.getConnection();
         const result = await conn.execute(sql, binds, { ...opts, outFormat: oracledb.OUT_FORMAT_OBJECT });
         return result.rows;
+    } catch (err) {
+        // DB 재부팅(RDS 클래스 변경 등)이나 네트워크 단절로 인한 연결 에러라면 pool을 버려서
+        // 다음 요청부터는 새 pool로 재시도하게 한다. 그대로 두면 DB가 복구된 후에도
+        // 죽은 pool을 계속 재사용하려다 서버 전체가 응답 불가 상태로 남는다.
+        if (isConnectionError(err)) {
+            invalidatePool();
+        }
+        throw err;
     } finally {
         if (conn) {
             try { await conn.close(); } catch(e) {}
